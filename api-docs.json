@@ -1,0 +1,311 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Authentication API Documentation",
+    "version": "1.0.0",
+    "description": "API documentation for authentication system"
+  },
+  "paths": {
+    "/api/auth/signup": {
+      "post": {
+        "summary": "Register new user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "email": "example@gmail.com",
+                "password": "Password123@",
+                "passwordConfirm": "Password123@",
+                "username": "John Doe"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful registration",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "success",
+                  "message": "Registration successful",
+                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "data": {
+                    "user": {
+                      "_id": "65f7e8a12d3a4b1c2d3e4f5g",
+                      "email": "example@gmail.com",
+                      "username": "John Doe",
+                      "isVerified": false,
+                      "avatar_url": "https://example.com/default-avatar.png",
+                      "createdAt": "2024-03-18T10:30:00.000Z",
+                      "updatedAt": "2024-03-18T10:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/verify": {
+      "post": {
+        "summary": "Verify user account with OTP",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "otp": "123456"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful verification",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "success",
+                  "message": "Email has been verified successfully!",
+                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "data": {
+                    "user": {
+                      "_id": "65f7e8a12d3a4b1c2d3e4f5g",
+                      "email": "example@gmail.com",
+                      "username": "John Doe",
+                      "isVerified": true,
+                      "avatar_url": "https://example.com/default-avatar.png",
+                      "createdAt": "2024-03-18T10:30:00.000Z",
+                      "updatedAt": "2024-03-18T10:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/resend-otp": {
+      "post": {
+        "summary": "Resend OTP to user email",
+        "responses": {
+          "200": {
+            "description": "OTP resent successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "success",
+                  "message": "A new otp has sent to your email successfully"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "User login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "email": "example@gmail.com",
+                "password": "Password123@"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful login",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "success",
+                  "message": "Login Successful",
+                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "data": {
+                    "user": {
+                      "_id": "65f7e8a12d3a4b1c2d3e4f5g",
+                      "email": "example@gmail.com",
+                      "username": "John Doe",
+                      "isVerified": true,
+                      "avatar_url": "https://example.com/default-avatar.png",
+                      "createdAt": "2024-03-18T10:30:00.000Z",
+                      "updatedAt": "2024-03-18T10:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/google-login": {
+      "post": {
+        "summary": "Google OAuth login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjFiZDY3..."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Google login",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "success",
+                  "message": "Google Login Successful",
+                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "data": {
+                    "user": {
+                      "_id": "65f7e8a12d3a4b1c2d3e4f5g",
+                      "username": "John Doe",
+                      "email": "johndoe@gmail.com",
+                      "avatar_url": "https://lh3.googleusercontent.com/a/AGNmyxZJ...",
+                      "googleId": "118437237619123456789",
+                      "isVerified": true,
+                      "createdAt": "2024-03-18T10:30:00.000Z",
+                      "updatedAt": "2024-03-18T10:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "summary": "User logout",
+        "responses": {
+          "200": {
+            "description": "Successful logout",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "success",
+                  "message": "Logged out successfully"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/forget-password": {
+      "post": {
+        "summary": "Request password reset",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "email": "example@gmail.com"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset OTP sent",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "success",
+                  "message": "Password reset otp is send to your email"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/reset-password": {
+      "patch": {
+        "summary": "Reset password with OTP",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "email": "example@gmail.com",
+                "otp": "123456",
+                "password": "NewPassword123@",
+                "passwordConfirm": "NewPassword123@"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successful",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "success",
+                  "message": "Password reset successfully!",
+                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "data": {
+                    "user": {
+                      "_id": "65f7e8a12d3a4b1c2d3e4f5g",
+                      "email": "example@gmail.com",
+                      "username": "John Doe",
+                      "isVerified": true,
+                      "avatar_url": "https://example.com/default-avatar.png",
+                      "createdAt": "2024-03-18T10:30:00.000Z",
+                      "updatedAt": "2024-03-18T10:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "error"
+          },
+          "message": {
+            "type": "string",
+            "example": "Error message description"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}
