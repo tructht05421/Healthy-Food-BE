@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "agenda": "^5.0.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -22,6 +23,7 @@
     "mongoose": "^8.9.3",
     "nodemailer": "^6.10.0",
     "nodemon": "^3.1.9",
+    "sinon": "^19.0.2",
     "socket.io": "^4.8.1",
     "validator": "^13.12.0"
   }

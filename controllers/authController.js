@@ -197,7 +197,7 @@ exports.googleLogin = catchAsync(async (req, res, next) => {
     user = await UserModel.create({
       username: name,
       email,
-      avatar_url: picture,
+      avatarUrl: picture,
       googleId: sub, // Lưu Google ID để tránh yêu cầu password
     });
   }
@@ -285,3 +285,13 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 
   createSendToken(user, 200, res, "Password reset successfully!");
 });
+
+//
+exports.restrictTo = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return next(new AppError("You do not have permission to perform this action", 403));
+    }
+    next();
+  };
+};

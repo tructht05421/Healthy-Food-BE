@@ -1,5 +1,6 @@
 const express = require("express");
 const dishRouter = express.Router();
+const { isAuthenticated, isAdmin, isNutritionist } = require("../middlewares/isAuthenticated");
 
 const {
   createDish,
@@ -7,24 +8,31 @@ const {
   getDishById,
   getAllDishes,
   deleteDish,
+  getDishByType,
   createRecipe,
-  updateRecipe,
+  updateRecipeById,
   getRecipeById,
+  deleteRecipeById,
   getAllRecipes,
 } = require("../controllers/dishController");
 
-// Dish Routes
-dishRouter.post("/", createDish); // Create a new dish
-dishRouter.get("/", getAllDishes); // Get all dishes
-dishRouter.get("/:dishId", getDishById); // Get dish by ID
-dishRouter.put("/:dishId", updateDish); // Update dish
-dishRouter.delete("/:dishId", deleteDish); // Delete dish
-// dishRouter.get("/type/:type", getDishByType); // Get dish by type
+dishRouter.get("/", getAllDishes); 
 
-// Recipe Routes
-dishRouter.post("/recipes", createRecipe); // Create a new recipe
-dishRouter.get("/recipes", getAllRecipes); // Get all recipes
-dishRouter.get("/recipes/:recipeId", getRecipeById); // Get recipe by ID
-dishRouter.put("/recipes/:recipeId", updateRecipe); // Update recipe
+// Chỉ admin/nutritionist mới có thể thêm, cập nhật, xóa món ăn
+dishRouter.post("/", isAuthenticated, isNutritionist, createDish);
+dishRouter.put("/:dishId", isAuthenticated, isNutritionist, updateDish);
+dishRouter.delete("/:dishId", isAuthenticated, isNutritionist, deleteDish);
+
+// Lấy thông tin món ăn
+dishRouter.get("/:dishId", getDishById);
+dishRouter.get("/type/:type", getDishByType);
+
+// Routes liên quan đến công thức món ăn
+dishRouter.get("/", getAllRecipes); // Lấy tất cả món ăn (lọc theo role)
+
+dishRouter.post("/:dishId/recipes", isAuthenticated, isNutritionist, createRecipe);
+dishRouter.get("/:dishId/recipes/:recipeId", getRecipeById);
+dishRouter.put("/:dishId/recipes/:recipeId", isAuthenticated, isNutritionist, updateRecipeById);
+dishRouter.delete("/:dishId/recipes/:recipeId", isAuthenticated, isNutritionist, deleteRecipeById);
 
 module.exports = dishRouter;

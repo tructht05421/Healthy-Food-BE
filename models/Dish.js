@@ -10,26 +10,42 @@ const dishSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    image_url: {
+    imageUrl: {
       type: String,
       default: null,
     },
-    video_url: {
+    videoUrl: {
       type: String,
       default: null,
     },
-    recipe_id: {
+    recipeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Recipe",
       required: false,
     },
-    cooking_time: {
-      type: String,
-      required: false,
+    cookingTime: {
+      type: Number,
+      default: 0, // in minutes
     },
-    nutritions: {
-      type: [String], // Array of nutrition information
-      default: [],
+    calories: {
+      type: Number,
+      default: 0,
+    },
+    protein: {
+      type: Number,
+      default: 0,
+    },
+    carbs: {
+      type: Number,
+      default: 0,
+    },
+    fat: {
+      type: Number,
+      default: 0,
+    },
+    totalServing: {
+      type: Number,
+      default: 0,
     },
     flavor: {
       type: [String], // Array of flavors

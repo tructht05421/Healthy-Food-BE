@@ -52,18 +52,18 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    avatar_url: {
+    avatarUrl: {
       type: String,
       default: null,
     },
     role: {
       type: String,
-      enum: ["admin", "customer", "nutritionist"],
-      default: "customer",
+      enum: ["admin", "user", "nutritionist"],
+      default: "user",
     },
-    user_preference_id: {
+    userPreferenceId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "UserPreference",
+      ref: "UserPreferenceModel",
       default: null,
     },
     createdAt: {
@@ -102,7 +102,10 @@ userSchema.pre("save", async function (next) {
 });
 
 // ✅ Kiểm tra password khi đăng nhập thường
-userSchema.methods.correctPassword = async function (candidatePassword, userPassword) {
+userSchema.methods.correctPassword = async function (
+  candidatePassword,
+  userPassword
+) {
   return await bcrypt.compare(candidatePassword, userPassword);
 };
 

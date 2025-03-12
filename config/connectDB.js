@@ -5,6 +5,7 @@ async function connectDB() {
     console.log("Waiting...connect to DB");
 
     await mongoose.connect(process.env.MONGODB_URL);
+    console.log("✅ Đã kết nối thành công với MongoDB");
     const connection = mongoose.connection;
 
     connection.on("connected", () => {
