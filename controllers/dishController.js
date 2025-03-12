@@ -44,9 +44,13 @@ exports.getAllDishes = async (req, res) => {
     }
 
     // Lấy danh sách món ăn theo điều kiện
-    const dishes = await Dish.find(filter)
-      .populate("recipeId") 
-      .populate("recipeId.ingredients.ingredientId");
+    const dishes = await Dish.find(filter).populate({
+      path: "recipeId",
+      populate: {
+        path: "ingredients.ingredientId",
+        model: "Ingredient",
+      },
+    });
     res.status(200).json({ status: "success", data: dishes });
   } catch (error) {
     res.status(500).json({ status: "fail", message: error.message });
