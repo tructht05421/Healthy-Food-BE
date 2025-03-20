@@ -98,38 +98,48 @@ exports.deleteComment = async (req, res) => {
 
 // CRUD cho LikeCommentDish
 exports.likeComment = async (req, res) => {
-    try {
+  try {
       const { commentId } = req.params;
       const { userId } = req.body;
-  
+
       if (!commentId || !userId) {
-        return res.status(400).json({ status: "fail", message: "Comment ID và User ID là bắt buộc!" });
+          return res.status(400).json({ status: "fail", message: "Comment ID và User ID là bắt buộc!" });
       }
-  
-      const existingLike = await LikeCommentDish.findOne({ commentId, userId });
-  
-      if (existingLike) {
-        // Unlike
-        await LikeCommentDish.findByIdAndDelete(existingLike._id);
-        await CommentDish.findByIdAndUpdate(commentId, { $inc: { likeCount: -1 } });
-        return res.status(200).json({ status: "success", message: "Unlike thành công!" });
+
+      const comment = await CommentDish.findById(commentId);
+      if (!comment) {
+          return res.status(404).json({ status: "fail", message: "Không tìm thấy bình luận!" });
       }
-  
-      // Like
-      const like = new LikeCommentDish({ commentId, userId });
-      await like.save();
-      await CommentDish.findByIdAndUpdate(commentId, { $inc: { likeCount: 1 } });
-  
-      res.status(201).json({ status: "success", data: like });
-    } catch (error) {
+
+      const isLiked = comment.likedBy.includes(userId);
+
+      if (isLiked) {
+          // Unlike
+          await CommentDish.findByIdAndUpdate(commentId, {
+              $inc: { likeCount: -1 },
+              $pull: { likedBy: userId } // Xóa user khỏi danh sách likedBy
+          });
+          return res.status(200).json({ status: "success", message: "Unlike thành công!" });
+      } else {
+          // Like
+          await CommentDish.findByIdAndUpdate(commentId, {
+              $inc: { likeCount: 1 },
+              $addToSet: { likedBy: userId } // Đảm bảo không bị trùng userId
+          });
+          return res.status(201).json({ status: "success", message: "Like thành công!" });
+      }
+  } catch (error) {
       res.status(500).json({ status: "fail", message: error.message });
-    }
-  };
+  }
+};
+
   
 exports.getLikesByComment = async (req, res) => {
   try {
-    const likes = await LikeCommentDish.find({ commentId: req.params.commentId });
-    res.status(200).json({ status: "success", data: likes });
+    const likes = await LikeCommentDish.find({ commentId: req.params.commentId }).select("userId");
+    res.status(200).json({ status: "success",
+       data: likes 
+      });
   } catch (error) {
     res.status(500).json({ status: "fail", message: error.message });
   }

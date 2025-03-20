@@ -17,6 +17,28 @@ exports.createDish = async (req, res) => {
     res.status(400).json({ status: "fail", message: error.message });
   }
 };
+// Create Many Dishes
+exports.createManyDishes = async (req, res) => {
+  try {
+    const dishes = req.body; // Nhận mảng các món ăn từ request body
+
+    // Kiểm tra xem dishes có phải là mảng không
+    if (!Array.isArray(dishes) || dishes.length === 0) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Input should be a non-empty array of dishes",
+      });
+    }
+
+    // Tạo nhiều món ăn và lưu vào database
+    const createdDishes = await Dish.insertMany(dishes);
+
+    // Trả về kết quả
+    res.status(201).json({ status: "success", data: createdDishes });
+  } catch (error) {
+    res.status(400).json({ status: "fail", message: error.message });
+  }
+};
 
 // Read all Dishes
 exports.getAllDishes = async (req, res) => {
@@ -44,13 +66,7 @@ exports.getAllDishes = async (req, res) => {
     }
 
     // Lấy danh sách món ăn theo điều kiện
-    const dishes = await Dish.find(filter).populate({
-      path: "recipeId",
-      populate: {
-        path: "ingredients.ingredientId",
-        model: "Ingredient",
-      },
-    });
+    const dishes = await Dish.find(filter);
     res.status(200).json({ status: "success", data: dishes });
   } catch (error) {
     res.status(500).json({ status: "fail", message: error.message });
@@ -66,9 +82,7 @@ exports.getDishById = async (req, res) => {
       isVisible: true,
     });
     if (!dish) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Dish not found" });
+      return res.status(404).json({ status: "fail", message: "Dish not found" });
     }
     res.status(200).json({ status: "success", data: dish });
   } catch (error) {
@@ -83,9 +97,7 @@ exports.getDishByType = async (req, res) => {
     // Lấy danh sách món ăn có type tương ứng, chưa bị xóa mềm và đang hiển thị
     const dishes = await Dish.find({ type, isDelete: false, isVisible: true });
     if (dishes.length === 0) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "No dishes found for this type" });
+      return res.status(404).json({ status: "fail", message: "No dishes found for this type" });
     }
     res.status(200).json({ status: "success", data: dishes });
   } catch (error) {
@@ -96,15 +108,8 @@ exports.getDishByType = async (req, res) => {
 // Update Dish
 exports.updateDish = async (req, res) => {
   try {
-    const updatedDish = await Dish.findByIdAndUpdate(
-      req.params.dishId,
-      req.body,
-      { new: true }
-    );
-    if (!updatedDish)
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Dish not found" });
+    const updatedDish = await Dish.findByIdAndUpdate(req.params.dishId, req.body, { new: true });
+    if (!updatedDish) return res.status(404).json({ status: "fail", message: "Dish not found" });
     res.status(200).json({ status: "success", data: updatedDish });
   } catch (error) {
     res.status(400).json({ status: "fail", message: error.message });
@@ -117,14 +122,10 @@ exports.deleteDish = async (req, res) => {
     const deletedDish = await Dish.findByIdAndDelete(req.params.dishId);
 
     if (!deletedDish) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Dish not found" });
+      return res.status(404).json({ status: "fail", message: "Dish not found" });
     }
 
-    res
-      .status(200)
-      .json({ status: "success", message: "Dish permanently deleted" });
+    res.status(200).json({ status: "success", message: "Dish permanently deleted" });
   } catch (error) {
     res.status(500).json({ status: "fail", message: error.message });
   }
@@ -139,9 +140,7 @@ exports.hideDish = async (req, res) => {
       { new: true, runValidators: true }
     );
     if (!hiddenDish) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Dish not found" });
+      return res.status(404).json({ status: "fail", message: "Dish not found" });
     }
     res.status(200).json({
       status: "success",
@@ -173,10 +172,9 @@ exports.createManyIngredients = async (req, res) => {
 
     // Kiểm tra xem ingredients có phải là mảng không
     if (!Array.isArray(ingredients)) {
-      return res.status(400).json({
-        status: "fail",
-        message: "Input should be an array of ingredients",
-      });
+      return res
+        .status(400)
+        .json({ status: "fail", message: "Input should be an array of ingredients" });
     }
 
     // Tạo các nguyên liệu và lưu vào database
@@ -227,9 +225,7 @@ exports.getIngredientById = async (req, res) => {
   try {
     const ingredient = await Ingredients.findById(req.params.ingredientId);
     if (!ingredient)
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Ingredient not found" });
+      return res.status(404).json({ status: "fail", message: "Ingredient not found" });
 
     res.status(200).json({ status: "success", data: ingredient });
   } catch (error) {
@@ -248,9 +244,7 @@ exports.updateIngredient = async (req, res) => {
       }
     );
     if (!updatedIngredient)
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Ingredient not found" });
+      return res.status(404).json({ status: "fail", message: "Ingredient not found" });
 
     res.status(200).json({ status: "success", data: updatedIngredient });
   } catch (error) {
@@ -261,19 +255,13 @@ exports.updateIngredient = async (req, res) => {
 // Delete Ingredient
 exports.deleteIngredient = async (req, res) => {
   try {
-    const deletedIngredient = await Ingredients.findByIdAndDelete(
-      req.params.ingredientId
-    );
+    const deletedIngredient = await Ingredients.findByIdAndDelete(req.params.ingredientId);
 
     if (!deletedIngredient) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Ingredient not found" });
+      return res.status(404).json({ status: "fail", message: "Ingredient not found" });
     }
 
-    res
-      .status(200)
-      .json({ status: "success", message: "Ingredient permanently deleted" });
+    res.status(200).json({ status: "success", message: "Ingredient permanently deleted" });
   } catch (error) {
     res.status(500).json({ status: "fail", message: error.message });
   }
@@ -289,9 +277,7 @@ exports.hideIngredient = async (req, res) => {
       { new: true, runValidators: true }
     );
     if (!hiddenIngredient) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Ingredient not found" });
+      return res.status(404).json({ status: "fail", message: "Ingredient not found" });
     }
     res.status(200).json({
       status: "success",
@@ -307,9 +293,7 @@ exports.searchIngredientsByName = async (req, res) => {
   try {
     const { name } = req.query;
     if (!name) {
-      return res
-        .status(400)
-        .json({ status: "fail", message: "Name query parameter is required" });
+      return res.status(400).json({ status: "fail", message: "Name query parameter is required" });
     }
 
     const ingredients = await Ingredients.find({
@@ -318,9 +302,7 @@ exports.searchIngredientsByName = async (req, res) => {
     });
 
     if (ingredients.length === 0) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Ingredient not found" });
+      return res.status(404).json({ status: "fail", message: "Ingredient not found" });
     }
 
     res.status(200).json({ status: "success", data: ingredients });
@@ -334,9 +316,7 @@ exports.filterIngredientsByType = async (req, res) => {
   try {
     const { type } = req.query;
     if (!type) {
-      return res
-        .status(400)
-        .json({ status: "fail", message: "Type query parameter is required" });
+      return res.status(400).json({ status: "fail", message: "Type query parameter is required" });
     }
 
     const ingredients = await Ingredients.find({
@@ -402,9 +382,7 @@ exports.createRecipe = async (req, res) => {
     const user = await UserModel.findById(decoded.id);
 
     if (!user) {
-      return res
-        .status(401)
-        .json({ status: "fail", message: "User not found" });
+      return res.status(401).json({ status: "fail", message: "User not found" });
     }
 
     // 3️⃣ Kiểm tra quyền: chỉ "admin" hoặc "nutritionist" mới được tạo recipe
@@ -419,9 +397,7 @@ exports.createRecipe = async (req, res) => {
     const { dishId } = req.params;
     const dish = await Dish.findById(dishId);
     if (!dish) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Dish not found" });
+      return res.status(404).json({ status: "fail", message: "Dish not found" });
     }
 
     // 5️⃣ Tính toán giá trị dinh dưỡng từ nguyên liệu
@@ -431,9 +407,7 @@ exports.createRecipe = async (req, res) => {
       totalFat = 0;
 
     for (const ingredientItem of req.body.ingredients) {
-      const ingredientInfo = await Ingredient.findById(
-        ingredientItem.ingredientId
-      );
+      const ingredientInfo = await Ingredient.findById(ingredientItem.ingredientId);
       if (!ingredientInfo) {
         return res.status(404).json({
           status: "fail",
@@ -442,8 +416,7 @@ exports.createRecipe = async (req, res) => {
       }
 
       let conversionFactor = ingredientItem.quantity / 100;
-      if (ingredientItem.unit === "tbsp")
-        conversionFactor = (ingredientItem.quantity * 15) / 100;
+      if (ingredientItem.unit === "tbsp") conversionFactor = (ingredientItem.quantity * 15) / 100;
       if (ingredientItem.unit === "tsp" || ingredientItem.unit === "tp")
         conversionFactor = (ingredientItem.quantity * 5) / 100;
 
@@ -502,13 +475,9 @@ exports.createRecipe = async (req, res) => {
 exports.getRecipeById = async (req, res) => {
   try {
     // Sử dụng populate để lấy thông tin Dish liên quan
-    const recipe = await Recipe.findById(req.params.recipeId).populate(
-      "dishId"
-    );
+    const recipe = await Recipe.findById(req.params.recipeId).populate("dishId");
     if (!recipe) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Recipe not found" });
+      return res.status(404).json({ status: "fail", message: "Recipe not found" });
     }
     res.status(200).json({ status: "success", data: recipe });
   } catch (error) {
@@ -522,9 +491,7 @@ exports.updateRecipeById = async (req, res) => {
     // Tìm Recipe hiện tại
     const recipe = await Recipe.findById(req.params.recipeId);
     if (!recipe) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Recipe not found" });
+      return res.status(404).json({ status: "fail", message: "Recipe not found" });
     }
 
     // Nếu cập nhật ingredients, tính lại giá trị dinh dưỡng
@@ -535,17 +502,12 @@ exports.updateRecipeById = async (req, res) => {
       let totalFat = 0;
 
       for (const ingredientItem of req.body.ingredients) {
-        const ingredientInfo = await Ingredient.findById(
-          ingredientItem.ingredientId
-        );
+        const ingredientInfo = await Ingredient.findById(ingredientItem.ingredientId);
         if (ingredientInfo) {
           let conversionFactor = ingredientItem.quantity / 100;
           if (ingredientItem.unit === "tbsp") {
             conversionFactor = (ingredientItem.quantity * 15) / 100;
-          } else if (
-            ingredientItem.unit === "tsp" ||
-            ingredientItem.unit === "tp"
-          ) {
+          } else if (ingredientItem.unit === "tsp" || ingredientItem.unit === "tp") {
             conversionFactor = (ingredientItem.quantity * 5) / 100;
           }
           totalCalories += (ingredientInfo.calories || 0) * conversionFactor;
@@ -572,18 +534,12 @@ exports.updateRecipeById = async (req, res) => {
     }
 
     // Cập nhật Recipe
-    const updatedRecipe = await Recipe.findByIdAndUpdate(
-      req.params.recipeId,
-      req.body,
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
+    const updatedRecipe = await Recipe.findByIdAndUpdate(req.params.recipeId, req.body, {
+      new: true,
+      runValidators: true,
+    });
     if (!updatedRecipe) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Recipe not found" });
+      return res.status(404).json({ status: "fail", message: "Recipe not found" });
     }
 
     // Cập nhật thông tin dinh dưỡng và totalServing trong Dish
@@ -616,9 +572,7 @@ exports.deleteRecipeById = async (req, res) => {
     // Xóa Recipe
     const recipe = await Recipe.findByIdAndDelete(req.params.recipeId);
     if (!recipe) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Recipe not found" });
+      return res.status(404).json({ status: "fail", message: "Recipe not found" });
     }
 
     // Xóa tham chiếu recipeId trong Dish và reset lại giá trị dinh dưỡng

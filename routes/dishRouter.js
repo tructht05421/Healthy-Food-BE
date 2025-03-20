@@ -14,12 +14,15 @@ const {
   getRecipeById,
   deleteRecipeById,
   getAllRecipes,
+  createManyDishes,
 } = require("../controllers/dishController");
 
-dishRouter.get("/", getAllDishes); 
+dishRouter.get("/", getAllDishes);
 
 // Chỉ admin/nutritionist mới có thể thêm, cập nhật, xóa món ăn
 dishRouter.post("/", isAuthenticated, isNutritionist, createDish);
+dishRouter.post("/multipleDishes", isAuthenticated, isNutritionist, createManyDishes);
+
 dishRouter.put("/:dishId", isAuthenticated, isNutritionist, updateDish);
 dishRouter.delete("/:dishId", isAuthenticated, isNutritionist, deleteDish);
 

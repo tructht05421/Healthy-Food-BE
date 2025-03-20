@@ -38,7 +38,14 @@ function initializeChatSocket(io) {
 
     socket.on("send_message", async (messageData) => {
       try {
-        const { conversationId, senderId, receiverId, text, imageUrl, videoUrl } = messageData;
+        const {
+          conversationId,
+          senderId,
+          receiverId,
+          text,
+          imageUrl,
+          videoUrl,
+        } = messageData;
 
         const newMessage = new Message({
           conversationId,
@@ -87,7 +94,10 @@ function initializeChatSocket(io) {
           conversationId,
           status: "active",
         });
-        io.to(socket.userId).emit("conversation_status", { conversationId, status: "active" });
+        io.to(socket.userId).emit("conversation_status", {
+          conversationId,
+          status: "active",
+        });
       } catch (err) {
         console.error("❌ Error accepting conversation:", err);
       }
@@ -103,7 +113,10 @@ function initializeChatSocket(io) {
           conversationId,
           status: "checked",
         });
-        io.to(socket.userId).emit("conversation_status", { conversationId, status: "checked" });
+        io.to(socket.userId).emit("conversation_status", {
+          conversationId,
+          status: "checked",
+        });
       } catch (err) {
         console.error("❌ Error checking conversation:", err);
       }

@@ -8,7 +8,9 @@ exports.createConversation = catchAsync(async (req, res) => {
   const { userId, topic } = req.body;
 
   if (!userId || !topic) {
-    return res.status(400).json({ status: "fail", message: "Missing userId or topic" });
+    return res
+      .status(400)
+      .json({ status: "fail", message: "Missing userId or topic" });
   }
 
   // Kiểm tra xem người dùng đã có cuộc trò chuyện với chủ đề này chưa
@@ -131,7 +133,8 @@ exports.createMessage = catchAsync(async (req, res) => {
   // 4. Kiểm tra quyền gửi tin nhắn
   const isUser = senderId === conversation.userId.toString();
   const isNutritionist =
-    conversation.nutritionistId && senderId === conversation.nutritionistId.toString();
+    conversation.nutritionistId &&
+    senderId === conversation.nutritionistId.toString();
 
   if (!isUser && !isNutritionist) {
     return res.status(403).json({
@@ -166,7 +169,9 @@ exports.getMessages = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
 
   if (!conversationId) {
-    return res.status(400).json({ status: "fail", message: "Missing conversationId" });
+    return res
+      .status(400)
+      .json({ status: "fail", message: "Missing conversationId" });
   }
 
   // Tìm cuộc trò chuyện và lấy tất cả tin nhắn liên quan đến conversationId
@@ -178,7 +183,9 @@ exports.getMessages = catchAsync(async (req, res) => {
     .exec(); // Đảm bảo trả về tất cả tin nhắn
 
   if (!conversation) {
-    return res.status(404).json({ status: "fail", message: "Conversation not found" });
+    return res
+      .status(404)
+      .json({ status: "fail", message: "Conversation not found" });
   }
 
   res.status(200).json({

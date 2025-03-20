@@ -50,12 +50,14 @@ exports.removeFavoriteDish = async (req, res) => {
   try {
     const { userId, dishId } = req.body;
 
+    // Cập nhật tất cả bản ghi có userId và dishId thành isLike: false
     const result = await UserFavoriteDishes.updateMany(
       { userId, dishId },
-      { isLike: false }
+      { $set: { isLike: false } }
     );
 
-    if (result.modifiedCount === 0) {
+    // Nếu không tìm thấy bản ghi nào, trả về lỗi
+    if (result.matchedCount === 0) {
       return res.status(404).json({ status: "fail", message: "Món ăn không tồn tại trong danh sách yêu thích" });
     }
 
@@ -64,3 +66,4 @@ exports.removeFavoriteDish = async (req, res) => {
     res.status(500).json({ status: "fail", message: error.message });
   }
 };
+

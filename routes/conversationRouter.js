@@ -29,6 +29,9 @@ conversationRouter.get("/:userId", getUserConversations);
 conversationRouter.put("/status/:conversationId", updateStatusConversation);
 
 // Tin nhắn trong conversation
-conversationRouter.route("/:conversationId/messages").post(createMessage).get(getMessages);
+conversationRouter
+  .route("/:conversationId/messages")
+  .post(createMessage)
+  .get(getMessages);
 
 module.exports = conversationRouter;

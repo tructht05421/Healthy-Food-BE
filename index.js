@@ -105,7 +105,7 @@ app.use("/api/v1/medicalConditions", medicalConditionRouter);
 app.use("/api/v1/favoriteDishes", userFavoriteDishesRouter);
 app.use("/api/v1/recipes", dishRouter);
 
-app.use("/api/v1/userpreference", userPreferenceRouter);
+app.use("/api/v1/userPreference", userPreferenceRouter);
 
 // Xử lý route không tồn tại
 app.all("*", (req, res, next) => {

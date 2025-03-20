@@ -2,6 +2,7 @@ const UserModel = require("../models/UserModel");
 // Import UserPreference model
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
+const mongoose = require("mongoose");
 
 // 📌 Lấy danh sách tất cả người dùng (bỏ qua user đã xóa)
 exports.getAllUsers = catchAsync(async (req, res, next) => {
@@ -33,15 +34,17 @@ exports.getUserById = catchAsync(async (req, res, next) => {
   });
 });
 
-// 📌 Cập nhật thông tin người dùng (chỉ cập nhật user chưa bị xóa)
-exports.updateUser = catchAsync(async (req, res, next) => {
-  const { username, avatar_url, role, isBan, isDelete } = req.body;
+// Update User By ID
+exports.updateUserById = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const updates = req.body;
 
-  const user = await UserModel.findByIdAndUpdate(req.params.id, updates, {
-    new: true,
-    runValidators: true,
+  const user = await UserModel.findByIdAndUpdate(id, updates, {
+    new: true, // Trả về user sau khi cập nhật
+    runValidators: true, // Chạy validation trên dữ liệu cập nhật
   });
-  if (!user) return next(new AppError("User not found", 404));
+
+  if (!user || user.isDelete) return next(new AppError("User not found", 404));
 
   res.status(200).json({
     status: "success",
@@ -50,12 +53,22 @@ exports.updateUser = catchAsync(async (req, res, next) => {
   });
 });
 
+
+
+
+
+
+
 // 📌 Xóa người dùng (Soft Delete) - chỉ xóa nếu user chưa bị xóa trước đó
 exports.deleteUser = catchAsync(async (req, res, next) => {
   const user = await UserModel.findByIdAndUpdate(
+    
     req.params.id,
+   
     { isDelete: true },
+   
     { new: true }
+  
   );
 
   if (!user) {
@@ -71,9 +84,13 @@ exports.deleteUser = catchAsync(async (req, res, next) => {
 // 🟢 Restore user (Chỉ admin)
 exports.restoreUser = catchAsync(async (req, res, next) => {
   const user = await UserModel.findByIdAndUpdate(
+    
     req.params.id,
+   
     { isDelete: false },
+   
     { new: true }
+  
   );
 
   if (!user) return next(new AppError("User not found", 404));
