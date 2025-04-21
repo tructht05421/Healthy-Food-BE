@@ -17,7 +17,7 @@ const ReminderSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["scheduled", "paused", "sent", "cancelled"],
+      enum: ["scheduled", "paused", "sent", "cancelled", "expired"], // Add 'expired'
       default: "scheduled",
     },
   },

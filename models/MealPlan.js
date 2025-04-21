@@ -5,13 +5,13 @@ const userMealPlanSchema = new mongoose.Schema({
   mealPlanId: { type: mongoose.Schema.Types.ObjectId, ref: "MealPlan", required: true },
   startDate: { type: Date, default: Date.now }, // Ngày bắt đầu MealPlan
 });
+
 // 📌 Schema cho MealTracking (theo dõi bữa ăn)
 const mealTrackingSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Ai theo dõi bữa ăn
   mealPlanId: { type: mongoose.Schema.Types.ObjectId, ref: "MealPlan", required: true }, // Liên kết MealPlan
   mealDayId: { type: mongoose.Schema.Types.ObjectId, ref: "MealDay", required: true }, // Liên kết ngày ăn
   mealId: { type: mongoose.Schema.Types.ObjectId, ref: "Meal", required: true }, // Liên kết bữa ăn
-
   isDone: { type: Boolean, default: false }, // Đánh dấu đã hoàn thành hay chưa
   caloriesConsumed: { type: Number, default: 0 }, // Lượng calo đã ăn
   updatedAt: { type: Date, default: Date.now }, // Lưu thời gian cập nhật gần nhất
@@ -25,8 +25,13 @@ const mealSchema = new mongoose.Schema({
   dishes: [
     {
       dishId: mongoose.Schema.Types.ObjectId,
+      recipeId: mongoose.Schema.Types.ObjectId,
+      imageUrl: String,
       name: String,
       calories: Number,
+      protein: Number,
+      carbs: Number,
+      fat: Number,
     },
   ],
 });
@@ -56,11 +61,20 @@ const mealPlanSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// 📌 Schema mới cho lịch sử UserMealPlan
+const userMealPlanHistorySchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  mealPlanId: { type: mongoose.Schema.Types.ObjectId, ref: "MealPlan", required: true },
+  startedAt: { type: Date, required: true },
+  endedAt: { type: Date, required: true },
+});
+
 // 📌 Xuất các model trong cùng file
 const UserMealPlan = mongoose.model("UserMealPlan", userMealPlanSchema);
 const MealPlan = mongoose.model("MealPlan", mealPlanSchema);
 const MealDay = mongoose.model("MealDay", mealDaySchema);
 const Meal = mongoose.model("Meal", mealSchema);
 const MealTracking = mongoose.model("MealTracking", mealTrackingSchema);
+const UserMealPlanHistory = mongoose.model("UserMealPlanHistory", userMealPlanHistorySchema);
 
-module.exports = { UserMealPlan, MealPlan, MealDay, Meal, MealTracking };
+module.exports = { UserMealPlan, MealPlan, MealDay, Meal, MealTracking, UserMealPlanHistory };

@@ -5,7 +5,7 @@ const {
   addMealToDay,
   addDishesToMeal,
   deleteDishFromMeal,
-  getMealPlan,
+  getMealPlanById,
   getMealDayByMealPlan,
   getMealById,
   getMealsByDayId,
@@ -14,64 +14,66 @@ const {
   toggleMealPlanStatus,
   deleteMealPlan,
   getUserMealPlan,
-  getMealPlanById,
   removeMealFromDay,
+  getUnpaidMealPlanForUser,
+  getMealPlanDetails,
+  getAllMealPlanPayment,
+  getMealPlanHistory,
+  getAllMealPlanNutritionistCreatedBy,
+  getAllMealPlanAdmin,
+  getAllNutritionistsWithMealPlans,
 } = require("../controllers/mealPlanController");
-const { isAuthenticated } = require("../middlewares/isAuthenticated");
-// Lấy danh sách MealPlan
-mealPlanRouter.get("/", getMealPlan);
-mealPlanRouter.get("/:mealPlanId", isAuthenticated, getMealPlanById);
+const { isAuthenticated, isAdmin, isNutritionist } = require("../middlewares/isAuthenticated");
 
-mealPlanRouter.get("/user/:userId", isAuthenticated, getUserMealPlan);
+// Áp dụng middleware cho toàn bộ router
+mealPlanRouter.use(isAuthenticated);
 
-// Tạo MealPlan
-mealPlanRouter.post("/", createMealPlan);
+// 📌 MealPlan aggregations (Đặt các route tĩnh trước)
+mealPlanRouter.get("/nutritionist/created", isNutritionist, getAllMealPlanNutritionistCreatedBy);
+mealPlanRouter.get("/nutritionists", isAdmin, getAllNutritionistsWithMealPlans);
+mealPlanRouter.get("/admin", isAdmin, getAllMealPlanAdmin);
+mealPlanRouter.get("/payments", getAllMealPlanPayment);
 
-// Cập nhật, bật/tắt trạng thái, hoặc xóa MealPlan
-mealPlanRouter.put("/:mealPlanId", isAuthenticated, updateMealPlan);
-mealPlanRouter.patch("/:mealPlanId/toggle", isAuthenticated, toggleMealPlanStatus);
-mealPlanRouter.delete("/:mealPlanId", isAuthenticated, deleteMealPlan);
+// 📌 User-specific MealPlan routes
+mealPlanRouter.get("/users/:userId", getUserMealPlan);
+mealPlanRouter.get("/users/:userId/unpaid", getUnpaidMealPlanForUser);
+mealPlanRouter.get("/users/:userId/history", getMealPlanHistory);
 
-// Quản lý Meal trong MealDay
-mealPlanRouter.post("/:mealPlanId/mealDay/:mealDayId/meal", isAuthenticated, addMealToDay);
+// 📌 MealPlan routes (Đặt route động sau)
+mealPlanRouter.route("/").post(createMealPlan);
+
+mealPlanRouter
+  .route("/:mealPlanId")
+  .get(getMealPlanById)
+  .put(updateMealPlan)
+  .delete(deleteMealPlan);
+
+mealPlanRouter.patch("/:mealPlanId/toggle", toggleMealPlanStatus);
+mealPlanRouter.get("/:mealPlanId/details", getMealPlanDetails);
+
+// 📌 MealDay routes
+mealPlanRouter.get("/:mealPlanId/mealdays", getMealDayByMealPlan);
+
+// 📌 Meal routes
+mealPlanRouter
+  .route("/:mealPlanId/mealdays/:mealDayId/meals")
+  .get(getMealsByDayId)
+  .post(addMealToDay);
+
+mealPlanRouter
+  .route("/:mealPlanId/mealdays/:mealDayId/meals/:mealId")
+  .get(getMealById)
+  .delete(removeMealFromDay);
+
+// 📌 Dish routes
+mealPlanRouter
+  .route("/:mealPlanId/mealdays/:mealDayId/meals/:mealId/dishes")
+  .get(getDishesByMeal)
+  .post(addDishesToMeal);
+
 mealPlanRouter.delete(
-  "/:mealPlanId/mealDay/:mealDayId/meal/:mealId",
-  isAuthenticated,
-  removeMealFromDay
-);
-
-// Quản lý Dish trong Meal
-mealPlanRouter.post(
-  "/:mealPlanId/mealDay/:mealDayId/meal/:mealId/dishes",
-  isAuthenticated,
-  addDishesToMeal
-);
-mealPlanRouter.delete(
-  "/:mealPlanId/mealDay/:mealDayId/meal/:mealId/dishes/:dishId",
-  isAuthenticated,
+  "/:mealPlanId/mealdays/:mealDayId/meals/:mealId/dishes/:dishId",
   deleteDishFromMeal
 );
-
-// Lấy thông tin MealDay, Meal, và Dish
-mealPlanRouter.get("/:mealPlanId/mealDay", isAuthenticated, getMealDayByMealPlan);
-mealPlanRouter.get("/:mealPlanId/mealDay/:mealDayId/meal", isAuthenticated, getMealsByDayId);
-mealPlanRouter.get("/:mealPlanId/mealDay/:mealDayId/meal/:mealId", isAuthenticated, getMealById);
-mealPlanRouter.get(
-  "/:mealPlanId/mealDay/:mealDayId/meal/:mealId/dishes",
-  isAuthenticated,
-  getDishesByMeal
-);
-
-// // Lấy danh sách MealPlan của user
-// mealPlanRouter.get("/user/:user_id", getUserMealPlans);
-
-// // Lấy chi tiết một MealPlan
-// mealPlanRouter.get("/:id", getMealPlanById);
-
-// // Cập nhật MealPlan
-// mealPlanRouter.put("/:id", updateMealPlan);
-
-// // Xóa MealPlan (soft delete)
-// mealPlanRouter.delete("/:id", deleteMealPlan);
 
 module.exports = mealPlanRouter;

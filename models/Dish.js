@@ -23,9 +23,10 @@ const dishSchema = new mongoose.Schema(
       ref: "Recipe",
       required: false,
     },
-    cookingTime: {
-      type: Number,
-      default: 0, // in minutes
+    medicalConditionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MedicalCondition", // Adjust the ref based on your model name
+      required: false,
     },
     calories: {
       type: Number,

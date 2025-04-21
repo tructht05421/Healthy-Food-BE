@@ -11,7 +11,7 @@ const {
   getPendingConversations,
   getUserConversations,
 } = require("../controllers/conversationController");
-
+const { isAuthenticated, isAdmin, isNutritionist } = require("../middlewares/isAuthenticated");
 // Tạo cuộc trò chuyện mới
 conversationRouter.post("/", createConversation);
 
@@ -30,7 +30,7 @@ conversationRouter.put("/status/:conversationId", updateStatusConversation);
 
 // Tin nhắn trong conversation
 conversationRouter
-  .route("/:conversationId/messages")
+  .route("/:conversationId/messages", isAuthenticated)
   .post(createMessage)
   .get(getMessages);
 

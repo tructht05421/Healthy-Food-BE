@@ -1,5 +1,11 @@
+// medicalConditionRouter.js
 const express = require("express");
 const medicalConditionRouter = express.Router();
+const {
+  isAuthenticated,
+  isNutritionist,
+} = require("../middlewares/isAuthenticated");
+
 const {
   createMedicalCondition,
   updateMedicalCondition,
@@ -9,11 +15,31 @@ const {
   searchMedicalConditionByName,
 } = require("../controllers/medicalConditionController");
 
-medicalConditionRouter.post("/", createMedicalCondition); // Tạo mới Medical Condition
-medicalConditionRouter.get("/", getAllMedicalConditions); // Lấy tất cả Medical Conditions
-medicalConditionRouter.get("/search", searchMedicalConditionByName); // Tìm kiếm theo tên
-medicalConditionRouter.get("/:conditionId", getMedicalConditionById); // Lấy theo ID
-medicalConditionRouter.put("/:conditionId", updateMedicalCondition); // Cập nhật Medical Condition
-medicalConditionRouter.delete("/:conditionId", deleteMedicalCondition); // Xóa cứng Medical Condition
+// Public routes
+medicalConditionRouter.get("/", getAllMedicalConditions);
+medicalConditionRouter.get("/search", searchMedicalConditionByName);
+medicalConditionRouter.get("/:conditionId", getMedicalConditionById);
+
+// Protected routes (yêu cầu authentication và role nutritionist)
+medicalConditionRouter.post(
+  "/",
+  isAuthenticated,
+  isNutritionist,
+  createMedicalCondition
+);
+
+medicalConditionRouter.put(
+  "/:conditionId",
+  isAuthenticated,
+  isNutritionist,
+  updateMedicalCondition
+);
+
+medicalConditionRouter.delete(
+  "/:conditionId",
+  isAuthenticated,
+  isNutritionist,
+  deleteMedicalCondition
+);
 
 module.exports = medicalConditionRouter;

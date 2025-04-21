@@ -3,7 +3,7 @@ const commentRatingRouter = express.Router();
 
 const {
   createComment,
-  getCommentsByDish,
+
   updateComment,
   deleteComment,
   likeComment,
@@ -12,11 +12,11 @@ const {
   rateRecipe,
   getRatingsByRecipe,
   deleteRating,
+  getCommentsByDish,
 } = require("../controllers/commentController");
 
-
 // Rating Routes - ƯU TIÊN TRƯỚC để tránh conflict
-commentRatingRouter.post("/rate", rateRecipe);  // Đánh giá món ăn
+commentRatingRouter.post("/rate", rateRecipe); // Đánh giá món ăn
 commentRatingRouter.get("/rate/:recipeId", getRatingsByRecipe); // Lấy danh sách đánh giá của món ăn
 commentRatingRouter.delete("/rate/:recipeId", deleteRating); // Xóa đánh giá
 
@@ -29,7 +29,5 @@ commentRatingRouter.delete("/comment/:commentId", deleteComment); // Xóa bình 
 commentRatingRouter.post("/:commentId/like", likeComment);
 commentRatingRouter.get("/like/:commentId", getLikesByComment); // Lấy danh sách lượt thích của bình luận
 commentRatingRouter.delete("/like/:commentId", unlikeComment); // Bỏ thích bình luận
-
-
 
 module.exports = commentRatingRouter;

@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema(
     passwordConfirm: {
       type: String,
       required: function () {
-        return !this.googleId;
+        return !this.googleId && this.isModified("password");
       },
       validate: {
         validator: function (el) {
@@ -86,6 +86,39 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    nutritionistApplication: {
+      type: {
+        personalInfo: {
+          fullName: { type: String },
+          phoneNumber: { type: String },
+          address: { type: String },
+        },
+        profileImage: { type: String },
+        introduction: { type: String },
+        certificateLink: {
+          // Thêm trường mới
+          type: String,
+          default: null,
+          validate: {
+            validator: function (v) {
+              // Kiểm tra định dạng URL hợp lệ nếu có giá trị
+              return v ? validator.isURL(v) : true;
+            },
+            message: "Please provide a valid URL for the certificate link",
+          },
+        },
+        status: {
+          type: String,
+          enum: ["pending", "approved", "rejected"],
+          default: "pending",
+        },
+        submittedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -98,6 +131,19 @@ userSchema.pre("save", async function (next) {
 
   this.password = await bcrypt.hash(this.password, 12);
   this.passwordConfirm = undefined; // Không lưu vào database
+  next();
+});
+
+// 🚫 Kiểm tra chỉ cho phép 1 admin
+userSchema.pre("save", async function (next) {
+  if (this.role !== "admin" || this.isModified("role") === false) return next();
+
+  const adminCount = await mongoose
+    .model("User")
+    .countDocuments({ role: "admin" });
+  if (adminCount >= 1 && this.isNew) {
+    return next(new Error("Hệ thống chỉ cho phép 1 tài khoản admin"));
+  }
   next();
 });
 

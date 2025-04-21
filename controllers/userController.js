@@ -1,103 +1,100 @@
-const UserModel = require("../models/UserModel");
-// Import UserPreference model
+const userService = require("../services/userService");
 const catchAsync = require("../utils/catchAsync");
-const AppError = require("../utils/appError");
-const mongoose = require("mongoose");
 
 // 📌 Lấy danh sách tất cả người dùng (bỏ qua user đã xóa)
 exports.getAllUsers = catchAsync(async (req, res, next) => {
-  const users = await UserModel.find({ isDelete: false }).populate(
-    "userPreferenceId"
-  );
-
-  res.status(200).json({
-    status: "success",
-    results: users.length,
-    data: { users },
-  });
+  const result = await userService.getAllUsers(req.query, req.user?._id);
+  res.status(200).json(result);
 });
 
 // 📌 Lấy thông tin chi tiết một người dùng theo ID (bỏ qua user đã xóa)
 exports.getUserById = catchAsync(async (req, res, next) => {
-  const user = await UserModel.findOne({
-    _id: req.params.id,
-    isDelete: false, // Chỉ lấy user chưa bị xóa
-  }).populate("userPreferenceId");
-
-  if (!user) {
-    return next(new AppError("User not found or has been deleted", 404));
+  const result = await userService.getUserById(req.params.id);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 404 nếu không tìm thấy
   }
-
-  res.status(200).json({
-    status: "success",
-    data: { user },
-  });
+  res.status(200).json(result);
 });
 
-// Update User By ID
+// 📌 Tìm kiếm người dùng theo email
+exports.searchUserByEmail = catchAsync(async (req, res, next) => {
+  const result = await userService.searchUserByEmail(req.query);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 400 nếu thiếu email
+  }
+  res.status(200).json(result);
+});
+
+// 📌 Cập nhật người dùng theo ID
 exports.updateUserById = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
-  const updates = req.body;
-
-  const user = await UserModel.findByIdAndUpdate(id, updates, {
-    new: true, // Trả về user sau khi cập nhật
-    runValidators: true, // Chạy validation trên dữ liệu cập nhật
-  });
-
-  if (!user || user.isDelete) return next(new AppError("User not found", 404));
-
-  res.status(200).json({
-    status: "success",
-    message: "User updated successfully",
-    data: { user },
-  });
+  const result = await userService.updateUserById(req.params.id, req.body);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 404 nếu không tìm thấy
+  }
+  res.status(200).json(result);
 });
 
-
-
-
-
-
-
-// 📌 Xóa người dùng (Soft Delete) - chỉ xóa nếu user chưa bị xóa trước đó
+// 📌 Xóa người dùng (Soft Delete)
 exports.deleteUser = catchAsync(async (req, res, next) => {
-  const user = await UserModel.findByIdAndUpdate(
-    
-    req.params.id,
-   
-    { isDelete: true },
-   
-    { new: true }
-  
-  );
+  const { id } = req.params;
+  const { password } = req.body; // Lấy mật khẩu từ body
 
-  if (!user) {
-    return next(new AppError("User not found or has been deleted", 404));
+  if (!password) {
+    return next(new AppError("Password is required", 400));
   }
 
-  res.status(200).json({
-    status: "success",
-    message: "User deleted successfully",
-  });
+  const result = await userService.deleteUser(id, password);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 404 hoặc 401 nếu không tìm thấy hoặc mật khẩu sai
+  }
+
+  res.status(200).json(result);
 });
 
-// 🟢 Restore user (Chỉ admin)
+// 📌 Khôi phục người dùng (Chỉ admin)
 exports.restoreUser = catchAsync(async (req, res, next) => {
-  const user = await UserModel.findByIdAndUpdate(
-    
-    req.params.id,
-   
-    { isDelete: false },
-   
-    { new: true }
-  
+  const result = await userService.restoreUser(req.params.id);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 404 nếu không tìm thấy
+  }
+  res.status(200).json(result);
+});
+
+// 📌 Tạo mới người dùng
+exports.createUser = catchAsync(async (req, res, next) => {
+  const result = await userService.createUser(req.body);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 409 nếu email đã tồn tại
+  }
+  res.status(201).json(result);
+});
+
+// 📌 Nộp CV để trở thành Nutritionist
+exports.submitNutritionistApplication = catchAsync(async (req, res, next) => {
+  if (!req.user || !req.user._id) {
+    return next(new AppError("Unauthorized: No user found in request", 401));
+  }
+  const result = await userService.submitNutritionistApplication(
+    req.user._id,
+    req.body
   );
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 400 hoặc 404 nếu có vấn đề
+  }
+  res.status(200).json(result);
+});
 
-  if (!user) return next(new AppError("User not found", 404));
+// 📌 Lấy danh sách user chờ phê duyệt Nutritionist
+exports.getPendingNutritionists = catchAsync(async (req, res, next) => {
+  const result = await userService.getPendingNutritionists();
+  res.status(200).json(result);
+});
 
-  res.status(200).json({
-    status: "success",
-    message: "User restored successfully",
-    data: { user },
-  });
+// 📌 Phê duyệt hoặc từ chối Nutritionist
+exports.reviewNutritionistApplication = catchAsync(async (req, res, next) => {
+  const result = await userService.reviewNutritionistApplication(req.body);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 400 hoặc 404 nếu có vấn đề
+  }
+  res.status(200).json(result);
 });

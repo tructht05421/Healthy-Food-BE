@@ -1,16 +1,16 @@
 const express = require("express");
-const router = express.Router();
+const homeRouter = express.Router();
 const homeController = require("../controllers/homeController");
 
-router.get("/ingredients/type", homeController.getIngredientsGroupedByType);
+homeRouter.get("/ingredients/type", homeController.getIngredientsGroupedByType);
 
 // ✅ Route lấy ingredient theo ID
-router.get("/ingredients/type/:type", homeController.getIngredientsByType);
+homeRouter.get("/ingredients/type/:type", homeController.getIngredientsByType);
 
 // ✅ Route lấy dish theo ID
-router.get("/dishes/type/:type", homeController.getDishByType);
+homeRouter.get("/dishes/type/:type", homeController.getDishByType);
 
 // ✅ Route lấy type cua dish
-router.get("/dishes/type", homeController.getDishGroupedByType);
+homeRouter.get("/dishes/type", homeController.getDishGroupedByType);
 
-module.exports = router;
+module.exports = homeRouter;

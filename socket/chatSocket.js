@@ -4,22 +4,19 @@ const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 
 function initializeChatSocket(io) {
-  // Middleware xác thực socket với JWT
+  console.log("chatSocket received io:", io ? "Yes" : "No");
+
   io.use(async (socket, next) => {
     try {
-      console.log("TOKEN CLIENT", socket.handshake.auth.token);
       const token = socket.handshake.auth.token;
-      if (!token) throw new Error("Authentication error");
+      if (!token) throw new Error("Authentication error: No token provided");
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-      console.log("dEcode", decoded);
-
-      socket.userId = decoded.id; // Thêm userId vào socket
+      socket.userId = decoded.id;
       console.log("✅ SOCKET.USERID:", socket.userId);
-
       next();
     } catch (err) {
-      console.error("❌ Authentication loiõ:", err.message);
+      console.error("❌ Authentication error:", err.message);
       next(new Error("Authentication error"));
     }
   });
@@ -27,112 +24,85 @@ function initializeChatSocket(io) {
   io.on("connection", (socket) => {
     console.log("🟢 User connected:", socket.userId);
 
-    socket.on("join", async (userId) => {
-      try {
-        await User.findByIdAndUpdate(userId, { isOnline: true });
-        io.emit("user_status", { userId, isOnline: true });
-      } catch (err) {
-        console.error("❌ Error updating user status:", err);
-      }
+    socket.on("join", ({ userId }) => {
+      socket.join(userId);
+      console.log(`User ${userId} joined their own room`);
+    });
+
+    socket.on("join_room", ({ conversationId, userId }) => {
+      socket.join(conversationId);
+      console.log(`User ${userId} joined room: ${conversationId}`);
     });
 
     socket.on("send_message", async (messageData) => {
       try {
-        const {
-          conversationId,
-          senderId,
-          receiverId,
-          text,
-          imageUrl,
-          videoUrl,
-        } = messageData;
-
-        const newMessage = new Message({
+        const { conversationId, senderId, text, type, imageUrl, videoUrl } = messageData;
+        const message = await Message.create({
           conversationId,
           senderId,
           text,
+          type: type || "text",
           imageUrl,
           videoUrl,
         });
-        await newMessage.save();
 
-        const conversation = await Conversation.findById(conversationId);
-        conversation.messages.push(newMessage._id);
-        conversation.lastMessage = text;
-        await conversation.save();
+        const conversation = await Conversation.findByIdAndUpdate(
+          conversationId,
+          {
+            $push: { messages: message._id },
+            $set: {
+              lastMessage: text || imageUrl || videoUrl || "New message",
+              updatedAt: Date.now(),
+            },
+          },
+          { new: true }
+        );
 
-        io.to(receiverId).emit("receive_message", newMessage);
-      } catch (err) {
-        console.error("❌ Error sending message:", err);
+        io.to(conversationId).emit("receive_message", message);
+      } catch (error) {
+        console.error("Error sending message via socket:", error);
+        socket.emit("error", { message: error.message });
       }
     });
 
     socket.on("typing", (conversationId) => {
-      socket.broadcast.emit("typing_status", {
-        conversationId,
-        isTyping: true,
-        userId: socket.userId,
-      });
+      socket.to(conversationId).emit("typing_status", { userId: socket.userId, typing: true });
     });
 
     socket.on("stop_typing", (conversationId) => {
-      socket.broadcast.emit("typing_status", {
-        conversationId,
-        isTyping: false,
-        userId: socket.userId,
-      });
+      socket.to(conversationId).emit("typing_status", { userId: socket.userId, typing: false });
     });
 
     socket.on("accept_conversation", async (conversationId) => {
       try {
-        const conversation = await Conversation.findById(conversationId);
-        conversation.nutritionistId = socket.userId;
-        conversation.status = "active";
-        await conversation.save();
-
-        io.to(conversation.userId).emit("conversation_status", {
+        const conversation = await Conversation.findByIdAndUpdate(
           conversationId,
-          status: "active",
-        });
-        io.to(socket.userId).emit("conversation_status", {
-          conversationId,
-          status: "active",
-        });
-      } catch (err) {
-        console.error("❌ Error accepting conversation:", err);
+          { status: "active" },
+          { new: true }
+        );
+        io.to(conversationId).emit("conversationUpdated", conversation);
+      } catch (error) {
+        console.error("Error accepting conversation:", error);
+        socket.emit("error", { message: error.message });
       }
     });
 
     socket.on("check_conversation", async (conversationId) => {
       try {
-        const conversation = await Conversation.findById(conversationId);
-        conversation.status = "checked";
-        await conversation.save();
-
-        io.to(conversation.userId).emit("conversation_status", {
+        const conversation = await Conversation.findByIdAndUpdate(
           conversationId,
-          status: "checked",
-        });
-        io.to(socket.userId).emit("conversation_status", {
-          conversationId,
-          status: "checked",
-        });
-      } catch (err) {
-        console.error("❌ Error checking conversation:", err);
+          { status: "checked" },
+          { new: true }
+        );
+        io.to(conversationId).emit("conversationUpdated", conversation);
+      } catch (error) {
+        console.error("Error checking conversation:", error);
+        socket.emit("error", { message: error.message });
       }
     });
 
-    socket.on("disconnect", async () => {
-      try {
-        await User.findByIdAndUpdate(socket.userId, {
-          isOnline: false,
-          lastActive: new Date(),
-        });
-        io.emit("user_status", { userId: socket.userId, isOnline: false });
-        console.log("🔴 User disconnected:", socket.userId);
-      } catch (err) {
-        console.error("❌ Error updating user status on disconnect:", err);
-      }
+    socket.on("disconnect", () => {
+      console.log("🔴 User disconnected:", socket.userId);
     });
   });
 }

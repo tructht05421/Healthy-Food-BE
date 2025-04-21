@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "agenda": "^5.0.0",
+    "axios": "^1.8.4",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -21,7 +22,9 @@
     "google-auth-library": "^9.15.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.3",
-    "nodemailer": "^6.10.0",
+    "multer": "^1.4.5-lts.2",
+    "node-cache": "^5.1.2",
+    "nodemailer": "^6.10.1",
     "nodemon": "^3.1.9",
     "sinon": "^19.0.2",
     "socket.io": "^4.8.1",

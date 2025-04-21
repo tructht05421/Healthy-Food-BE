@@ -24,6 +24,11 @@ const messageSchema = new mongoose.Schema(
       type: String,
       default: null, // Tin nhắn dạng video
     },
+    type: {
+      type: String,
+      enum: ["text", "image", "video"], // Chỉ cho phép các giá trị này
+      default: "text", // Mặc định là text
+    },
     isRead: {
       type: Boolean,
       default: false, // Trạng thái đọc

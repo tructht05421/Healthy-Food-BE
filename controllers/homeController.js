@@ -1,68 +1,48 @@
-const Ingredients = require("../models/Ingredient");
-const Dishes = require("../models/Dish");
+const homeService = require("../services/homeService");
 
+// === Ingredients Controllers ===
+// Lấy danh sách nguyên liệu nhóm theo type
 exports.getIngredientsGroupedByType = async (req, res) => {
   try {
-    const groupedIngredients = await Ingredients.aggregate([
-      { $match: { isDelete: false } }, // Chỉ lấy những ingredient chưa bị xóa
-      {
-        $group: {
-          _id: "$type", // Nhóm theo `type`
-          ingredients: { $push: "$$ROOT" }, // Đưa toàn bộ document vào nhóm
-        },
-      }
-    ]);
-
-    res.status(200).json({ status: "success", data: groupedIngredients });
+    const result = await homeService.getIngredientsGroupedByType();
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ status: "fail", message: error.message });
   }
 };
 
-// ✅ API lấy danh sách nguyên liệu theo `type`
+// Lấy danh sách nguyên liệu theo type
 exports.getIngredientsByType = async (req, res) => {
   try {
-    const { type } = req.params;
-    const ingredients = await Ingredients.find({ type, isDelete: false });
-
-    if (ingredients.length === 0) {
-      return res.status(404).json({ status: "fail", message: "No ingredients found for this type" });
+    const result = await homeService.getIngredientsByType(req.params.type);
+    if (!result.data.length) {
+      return res.status(404).json(result); // Trả về lỗi 404 nếu không tìm thấy
     }
-
-    res.status(200).json({ status: "success", data: ingredients });
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ status: "fail", message: error.message });
   }
 };
 
+// === Dishes Controllers ===
+// Lấy danh sách món ăn nhóm theo type
 exports.getDishGroupedByType = async (req, res) => {
   try {
-    const groupedDishTypes = await Dishes.aggregate([
-      { $match: { isDelete: false } }, // Chỉ lấy những ingredient chưa bị xóa
-      {
-        $group: {
-          _id: "$type", // Nhóm theo `type`
-          dishes: { $push: "$$ROOT" }, // Đưa toàn bộ document vào nhóm
-        },
-      }
-    ]);
-
-    res.status(200).json({ status: "success", data: groupedDishTypes });
+    const result = await homeService.getDishGroupedByType();
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ status: "fail", message: error.message });
   }
 };
 
+// Lấy danh sách món ăn theo type
 exports.getDishByType = async (req, res) => {
   try {
-    const { type } = req.params;
-    const dishes = await Dishes.find({ type, isDelete: false });
-
-    if (dishes.length === 0) {
-      return res.status(404).json({ status: "fail", message: "No dishes found for this type" });
+    const result = await homeService.getDishByType(req.params.type);
+    if (!result.data.length) {
+      return res.status(404).json(result); // Trả về lỗi 404 nếu không tìm thấy
     }
-
-    res.status(200).json({ status: "success", data: dishes });
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ status: "fail", message: error.message });
   }

@@ -19,12 +19,6 @@ function initializeReminderSocket(io) {
   io.on("connection", (socket) => {
     console.log("🟢 Reminder socket connected:", socket.userId);
 
-    // Tự động thêm user vào room của chính họ
-    if (socket.userId) {
-      socket.join(socket.userId);
-      console.log(`👤 User ${socket.userId} tự động được thêm vào room`);
-    }
-
     // Xử lý sự kiện join - sử dụng để client có thể join vào room
     socket.on("join", (userId) => {
       if (!userId) {
@@ -32,12 +26,16 @@ function initializeReminderSocket(io) {
         return;
       }
 
-      console.log(`🔔 User ${userId} joined reminder socket`);
-      socket.join(userId);
-    });
+      // Rời tất cả các phòng hiện tại để tránh nhầm lẫn
+      Object.keys(socket.rooms).forEach((room) => {
+        if (room !== socket.id) {
+          socket.leave(room);
+        }
+      });
 
-    // Không cần sự kiện set_reminder vì reminders đã được tạo từ lúc tạo MealPlan
-    // và sẽ được gửi bởi Agenda job khi đến thời gian
+      socket.join(userId);
+      console.log(`🔔 User ${userId} joined reminder socket`);
+    });
 
     socket.on("disconnect", () => {
       console.log("🔴 Reminder socket disconnected:", socket.userId);

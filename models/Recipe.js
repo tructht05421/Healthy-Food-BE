@@ -6,7 +6,7 @@ const recipeSchema = new mongoose.Schema({
     {
       ingredientId: { type: mongoose.Schema.Types.ObjectId, ref: "Ingredient", required: true },
       quantity: { type: Number, default: 1 },
-      unit: { type: String, enum: ["g", "ml", "tbsp", "tp"], required: true },
+      unit: { type: String, enum: ["g", "ml", "tbsp", "tsp"], required: true },
     },
   ],
   instruction: [{ step: Number, description: String }],

@@ -1,20 +1,9 @@
-const { OAuth2Client } = require("google-auth-library");
-const generateOtp = require("../utils/generateOtp");
+const authService = require("../services/authService");
 const catchAsync = require("../utils/catchAsync");
-const AppError = require("../utils/appError");
-const UserModel = require("../models/UserModel");
-const sendEmail = require("../utils/email");
-const jwt = require("jsonwebtoken");
 
-const client = new OAuth2Client(process.env.GG_CLIENT_ID);
-const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET_KEY, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
-  });
-};
-
+// Hàm tạo và gửi token
 const createSendToken = (user, statusCode, res, message) => {
-  const token = signToken(user._id);
+  const token = authService.signToken(user._id);
 
   const cookieOptions = {
     expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000),
@@ -35,184 +24,95 @@ const createSendToken = (user, statusCode, res, message) => {
     status: "success",
     message,
     token,
-    data: {
-      user, // Sử dụng trực tiếp user thay vì biến không tồn tại
-    },
+    data: { user },
   });
 };
-// SignUp
+
+// Đăng ký
 exports.signup = catchAsync(async (req, res, next) => {
-  const { email, password, passwordConfirm, username } = req.body;
-
-  // Kiểm tra xem email đã được đăng ký chưa
-  const existingUser = await UserModel.findOne({ email });
-  if (existingUser) return next(new AppError("Email already registered", 400));
-
-  // Tạo OTP và thời gian hết hạn
-  const otp = generateOtp();
-  const otpExpires = Date.now() + 24 * 60 * 60 * 1000; // Thời gian hết hạn là 24 giờ
-  // Tạo người dùng mới
-  const newUser = await UserModel.create({
-    email,
-    password,
-    passwordConfirm,
-    username,
-    otp, // OTP
-    otpExpires, // Thời gian hết hạn OTP
-  });
-
-  // Gửi OTP qua email
-  try {
-    await sendEmail({
-      email: newUser.email,
-      subject: "OTP for email verification",
-      html: `<h1>Your OTP is ${otp}</h1>`,
-    });
-
-    console.log("Email sent successfully");
-    await createSendToken(newUser, 200, res, "Registration successful");
-  } catch (error) {
-    console.error(" Error sending email:", error);
-
-    // Xóa user nếu có lỗi gửi email
-    await UserModel.findByIdAndDelete(newUser._id);
-
-    return next(new AppError("There is an error sending the email. Try again", 500));
+  const result = await authService.signup(req.body);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 400 hoặc 500 nếu có vấn đề
   }
+  createSendToken(result.data.user, 200, res, "Registration successful");
 });
 
-// Verify Account
+// Xác minh tài khoản
 exports.verifyAccount = catchAsync(async (req, res, next) => {
-  const { email, otp } = req.body;
-
-  if (!email || !otp) {
-    return next(new AppError("Email and OTP are required", 400));
+  const result = await authService.verifyAccount(req.body);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 400 hoặc 404 nếu có vấn đề
   }
-
-  // 1. Tìm user bằng email
-  const user = await UserModel.findOne({ email });
-
-  if (!user) {
-    return next(new AppError("User not found", 404));
-  }
-
-  // 2. Kiểm tra thời hạn của OTP
-  if (!user.otp || Date.now() > user.otpExpires) {
-    return next(new AppError("OTP has expired. Please request a new one", 400));
-  }
-
-  // 3. Kiểm tra OTP có đúng không
-  if (user.otp !== otp) {
-    return next(new AppError("Invalid OTP", 400));
-  }
-
-  // 4. Nếu OTP hợp lệ, cập nhật trạng thái tài khoản
-  user.otp = undefined; // Xóa OTP để tránh bị dùng lại
-  user.otpExpires = undefined; // Xóa thời gian hết hạn OTP
-
-  await user.save({ validateBeforeSave: false }); // Lưu thay đổi vào database
-
-  createSendToken(user, 200, res, "Email has been verified successfully!"); // Gửi token và thông báo thành công
+  createSendToken(result.data.user, 200, res, "Email has been verified successfully!");
 });
 
-// Resend OTP
+// Gửi lại OTP
 exports.resendOTP = catchAsync(async (req, res, next) => {
-  const { email } = req.body; // Nhận email từ body, không cần auth
-
-  if (!email) {
-    return next(new AppError("Email is required to resend OTP", 400));
+  const result = await authService.resendOTP(req.body);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 400 hoặc 500 nếu có vấn đề
   }
-
-  const user = await UserModel.findOne({ email });
-
-  if (!user) {
-    return next(new AppError("User not found", 404));
+  res.status(200).json(result);
+});
+// Xác minh OTP (cho TempOTP)
+exports.verifyOtp = catchAsync(async (req, res, next) => {
+  const result = await authService.verifyOtp(req.body);
+  if (!result.success) {
+    return next(result.error);
   }
-
-  // Tạo OTP mới
-  const newOtp = generateOtp();
-  const otpExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 giờ
-
-  // Cập nhật user với OTP mới và thời gian hết hạn
-  user.otp = newOtp;
-  user.otpExpires = otpExpires;
-  await user.save({ validateBeforeSave: false });
-
-  // Gửi OTP qua email
-  try {
-    await sendEmail({
-      email: user.email,
-      subject: "Resend OTP for email verification",
-      html: `<h1>Your new OTP is ${newOtp}</h1>`,
-    });
-
-    res.status(200).json({
-      status: "success",
-      message: "A new OTP has been sent to your email successfully.",
-    });
-  } catch (error) {
-    user.otp = undefined;
-    user.otpExpires = undefined;
-    await user.save({ validateBeforeSave: false });
-    return next(new AppError("There was an error sending the email. Please try again.", 500));
+  res.status(200).json(result);
+});
+// Gửi OTP ban đầu
+exports.requestOTP = catchAsync(async (req, res, next) => {
+  const result = await authService.requestOTP(req.body);
+  if (!result.success) {
+    return next(result.error);
   }
+  res.status(200).json(result);
+});
+// Yêu cầu xóa tài khoản
+exports.requestDeleteAccount = catchAsync(async (req, res, next) => {
+  const result = await authService.requestDeleteAccount(req.body);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 400, 404 hoặc 500 nếu có vấn đề
+  }
+  res.status(200).json(result);
 });
 
-// Login
+// Xác nhận xóa tài khoản
+exports.confirmDeleteAccount = catchAsync(async (req, res, next) => {
+  const result = await authService.confirmDeleteAccount(req.body);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 400 hoặc 404 nếu có vấn đề
+  }
+  res.status(200).json(result);
+});
+
+// Đăng nhập
 exports.login = catchAsync(async (req, res, next) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return next(new AppError("Please provide email and password", 400));
+  const result = await authService.login(req.body);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 400 hoặc 401 nếu có vấn đề
   }
-
-  const user = await UserModel.findOne({ email }).select("+password");
-
-  if (!user || !(await user.correctPassword(password, user.password))) {
-    return next(new AppError("Incorrect Email or password", 401));
-  }
-
-  createSendToken(user, 200, res, "Login Successful");
+  createSendToken(result.data.user, 200, res, "Login Successful");
 });
-// Google Login
+
+// Đăng nhập bằng Google
 exports.googleLogin = catchAsync(async (req, res, next) => {
-  const { idToken } = req.body;
-  if (!idToken) {
-    return next(new AppError("No Google token provided", 400));
+  const result = await authService.googleLogin(req.body);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 400 nếu có vấn đề
   }
-
-  // Xác thực token với Google
-  const ticket = await client.verifyIdToken({
-    idToken,
-    audience: process.env.GG_CLIENT_ID,
-  });
-
-  const { sub, email, name, picture } = ticket.getPayload(); // `sub` là Google ID
-
-  // Tìm người dùng trong DB
-  let user = await UserModel.findOne({ email });
-
-  if (!user) {
-    // Nếu chưa có, tạo tài khoản mới (kèm googleId)
-    user = await UserModel.create({
-      username: name,
-      email,
-      avatarUrl: picture,
-      googleId: sub, // Lưu Google ID để tránh yêu cầu password
-    });
-  }
-
-  // Tạo token & gửi response
-  createSendToken(user, 200, res, "Google Login Successful");
+  createSendToken(result.data.user, 200, res, "Google Login Successful");
 });
 
-// Logout
+// Đăng xuất
 exports.logout = catchAsync(async (req, res, next) => {
   res.cookie("token", "loggedout", {
     expires: new Date(Date.now() + 10 * 1000), // Thời gian sống của cookie là 10 giây
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "Lax", // SameSite để bảo mật cookie
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "Lax",
   });
 
   res.status(200).json({
@@ -220,73 +120,35 @@ exports.logout = catchAsync(async (req, res, next) => {
     message: "Logged out successfully",
   });
 });
-// Forget Password
+
+// Quên mật khẩu
 exports.forgetPassword = catchAsync(async (req, res, next) => {
-  const { email } = req.body; // Lấy email từ request body
-
-  const user = await UserModel.findOne({ email });
-
-  if (!user) {
-    return next(new AppError("No user found with that email", 404));
+  const result = await authService.forgetPassword(req.body);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 404 hoặc 500 nếu có vấn đề
   }
-
-  // Tạo OTP mới
-  const otp = generateOtp();
-  user.otp = otp;
-  user.otpExpires = Date.now() + 300000; // 5 phút hết hạn
-
-  await user.save({ validateBeforeSave: false });
-
-  try {
-    await sendEmail({
-      email: user.email,
-      subject: "Your password reset token (valid for 5 min)",
-      html: `
-      <p>Forgot your password? Submit a PATCH request with your new password and passwordConfirm to:</p> 
-      <p>Your OTP is <b>${user.otp}</b></p>        
-      <p>If you didn't forget your password, please ignore this email!</p>
-      `,
-    });
-
-    res.status(200).json({
-      status: "success",
-      message: "Password reset OTP has been sent to your email.",
-    });
-  } catch (err) {
-    user.otp = undefined;
-    user.otpExpires = undefined;
-    await user.save({ validateBeforeSave: false });
-
-    return next(new AppError("There was an error sending the email. Try again later!", 500));
-  }
+  res.status(200).json(result);
 });
-// Reset Password
+
+// Đặt lại mật khẩu
 exports.resetPassword = catchAsync(async (req, res, next) => {
-  const { email, password, passwordConfirm } = req.body;
-
-  const user = await UserModel.findOne({
-    email,
-  });
-
-  if (!user) {
-    return next(new AppError("Invalid email or OTP expired", 400));
+  const result = await authService.resetPassword(req.body);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 400 nếu có vấn đề
   }
-
-  // Cập nhật mật khẩu mới và đánh dấu là đã thay đổi
-  user.password = password;
-  user.passwordConfirm = passwordConfirm;
-  user.markModified("password"); // Đảm bảo middleware hash chạy
-
-  // Xóa OTP sau khi sử dụng để tránh bị dùng lại
-  user.otp = undefined;
-  user.otpExpires = undefined;
-
-  await user.save(); // Middleware sẽ tự hash mật khẩu
-
-  createSendToken(user, 200, res, "Password reset successfully!");
+  createSendToken(result.data.user, 200, res, "Password reset successfully!");
 });
 
-//
+// Thay đổi mật khẩu
+exports.changePassword = catchAsync(async (req, res, next) => {
+  const result = await authService.changePassword(req.body, req.user);
+  if (!result.success) {
+    return next(result.error); // Trả về lỗi 400, 401 hoặc 404 nếu có vấn đề
+  }
+  createSendToken(result.data.user, 200, res, "Password changed successfully!");
+});
+
+// Giới hạn quyền truy cập
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {

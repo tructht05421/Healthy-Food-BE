@@ -1,41 +1,35 @@
 const express = require("express");
 const dishRouter = express.Router();
 const { isAuthenticated, isAdmin, isNutritionist } = require("../middlewares/isAuthenticated");
-
 const {
   createDish,
   updateDish,
   getDishById,
   getAllDishes,
+  getAllDishesForNutri,
   deleteDish,
-  getDishByType,
-  createRecipe,
-  updateRecipeById,
-  getRecipeById,
-  deleteRecipeById,
-  getAllRecipes,
+
   createManyDishes,
+  hideDish,
+  getDishesBySeason,
+  searchDishByName,
+  getDishByType,
 } = require("../controllers/dishController");
 
+// Routes cho Dish
 dishRouter.get("/", getAllDishes);
+dishRouter.get("/search", searchDishByName);
+dishRouter.get("/type/:type", getDishByType);
+// In dishRouter.js
+dishRouter.get("/by-season", getDishesBySeason);
+dishRouter.get("/nutritionist", getAllDishesForNutri);
 
-// Chỉ admin/nutritionist mới có thể thêm, cập nhật, xóa món ăn
 dishRouter.post("/", isAuthenticated, isNutritionist, createDish);
-dishRouter.post("/multipleDishes", isAuthenticated, isNutritionist, createManyDishes);
-
+dishRouter.post("/multiple", isAuthenticated, isNutritionist, createManyDishes);
 dishRouter.put("/:dishId", isAuthenticated, isNutritionist, updateDish);
 dishRouter.delete("/:dishId", isAuthenticated, isNutritionist, deleteDish);
-
-// Lấy thông tin món ăn
 dishRouter.get("/:dishId", getDishById);
-dishRouter.get("/type/:type", getDishByType);
 
-// Routes liên quan đến công thức món ăn
-dishRouter.get("/", getAllRecipes); // Lấy tất cả món ăn (lọc theo role)
-
-dishRouter.post("/:dishId/recipes", isAuthenticated, isNutritionist, createRecipe);
-dishRouter.get("/:dishId/recipes/:recipeId", getRecipeById);
-dishRouter.put("/:dishId/recipes/:recipeId", isAuthenticated, isNutritionist, updateRecipeById);
-dishRouter.delete("/:dishId/recipes/:recipeId", isAuthenticated, isNutritionist, deleteRecipeById);
+dishRouter.patch("/:dishId/hide", isAuthenticated, isNutritionist, hideDish); // Nếu có hideDish
 
 module.exports = dishRouter;

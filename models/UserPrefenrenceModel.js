@@ -16,7 +16,7 @@ const userPreferenceSchema = new mongoose.Schema(
       default: null,
     },
     eatHabit: {
-      type: [String], // Mảng String
+      type: [String],
       default: [],
     },
     email: {
@@ -25,7 +25,7 @@ const userPreferenceSchema = new mongoose.Schema(
       lowercase: true,
     },
     favorite: {
-      type: [String], // Mảng String
+      type: [String],
       default: [],
     },
     longOfPlan: {
@@ -48,13 +48,17 @@ const userPreferenceSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    activityLevel: {
+      type: String,
+      default: null,
+    },
     waterDrink: {
       type: String,
       default: null,
     },
     hate: {
-      type: [String], // Mảng String
-      default: [],
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Ingredient" }],
+      required: false,
     },
     weight: {
       type: Number,
@@ -68,6 +72,10 @@ const userPreferenceSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    activityLevel: {
+      type: Number,
+      default: 0,
+    },
     gender: {
       type: String,
       default: null,
@@ -77,8 +85,8 @@ const userPreferenceSchema = new mongoose.Schema(
       default: null,
     },
     underDisease: {
-      type: [String], // Chấp nhận nhiều giá trị
-      default: [],
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "MedicalCondition" }],
+      required: false,
     },
     theme: {
       type: Boolean,
@@ -90,7 +98,7 @@ const userPreferenceSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Tự động thêm createdAt và updatedAt
+    timestamps: true,
   }
 );
 

@@ -14,15 +14,17 @@ const userPreferenceRouter = express.Router();
 
 // Create User Preference
 userPreferenceRouter.post("/", createUserPreference);
-
 // Get All User Preferences (not deleted)
 userPreferenceRouter.get("/", getAllUserPreferences);
 
-// Get User Preference by user_id
-userPreferenceRouter.get("/:userId", getUserPreferenceByUserId);
+// Get User Preference by ID
+userPreferenceRouter.get("/:id", getUserPreferenceById);
+
+// Get User Preference by userId
+userPreferenceRouter.get("/user/:userId", getUserPreferenceByUserId);
 
 // Update User Preference
-userPreferenceRouter.put("/:id", updateUserPreference);
+userPreferenceRouter.put("/:userPreferenceId", updateUserPreference); // Đổi :id thành :userPreferenceId
 
 // Soft Delete User Preference
 userPreferenceRouter.patch("/:id/soft-delete", softDeleteUserPreference);
