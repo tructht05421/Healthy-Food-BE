@@ -29,7 +29,7 @@ const userPreferenceRouter = require("./routes/userPreferenceRouter");
 const recipeRouter = require("./routes/recipeRouter");
 
 // Import các service và socket
-const conversationService = require("./services/conversationService"); // Thêm import
+const conversationService = require("./services/conversationService");
 const initializeChatSocket = require("./socket/chatSocket");
 const initializeReminderSocket = require("./socket/reminderSocket");
 
@@ -41,7 +41,7 @@ const io = socketIo(server, {
   cors: {
     origin: [
       process.env.ADMIN_WEB_URL || "http://localhost:3000",
-      process.env.MOBILE_CLIENT_URL || "http://localhost:3001", // Thêm các origin cần thiết
+      // process.env.MOBILE_CLIENT_URL || "http://localhost:3001", // Xóa vì không cần
     ],
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"],
@@ -50,19 +50,21 @@ const io = socketIo(server, {
 });
 
 // Truyền io vào các service và socket
-console.log("Initializing services and sockets with io...");
-conversationService.initialize(io); // Thêm dòng này để khởi tạo io cho conversationService
+if (process.env.NODE_ENV !== "production") {
+  console.log("Initializing services and sockets with io...");
+}
+conversationService.initialize(io);
 initializeChatSocket(io);
 initializeReminderSocket(io);
 
 // Cấu hình middleware
-app.use(express.json());
+app.use(express.json({ limit: "10kb" })); // Thêm giới hạn body size
 app.use(cookieParser());
 
 // Danh sách các URL được phép truy cập
 const allowedOrigins = [
   process.env.ADMIN_WEB_URL || "http://localhost:3000",
-  process.env.MOBILE_CLIENT_URL || "http://localhost:3001", // Thêm các origin cần thiết
+  // process.env.MOBILE_CLIENT_URL || "http://localhost:3001", // Xóa vì không cần
 ];
 
 const corsOptions = {
@@ -80,7 +82,9 @@ app.use(cors(corsOptions));
 
 // Xử lý khi ứng dụng dừng
 async function graceful() {
-  console.log("Đang đóng ứng dụng...");
+  if (process.env.NODE_ENV !== "production") {
+    console.log("Đang đóng ứng dụng...");
+  }
   await stopAgenda();
   process.exit(0);
 }
@@ -121,18 +125,20 @@ const PORT = process.env.PORT || 8080;
 // Hàm khởi động server
 const startServer = async () => {
   try {
-    await connectDB(); // Kết nối đến MongoDB
-
-    // Khởi động server
+    await connectDB();
     server.listen(PORT, () => {
-      console.log(`Server đang chạy tại http://localhost:${PORT}`);
+      console.log(
+        `Server running at ${
+          process.env.NODE_ENV === "production"
+            ? "https://healthy-food-be.onrender.com"
+            : `http://localhost:${PORT}`
+        }`
+      );
     });
-
-    // Bắt đầu Agenda (quản lý jobs)
     agenda.start();
     initJobs(agenda, io);
   } catch (error) {
-    console.error("Lỗi khởi động ứng dụng:", error);
+    console.error("Application startup error:", error.message, error.stack);
     process.exit(1);
   }
 };

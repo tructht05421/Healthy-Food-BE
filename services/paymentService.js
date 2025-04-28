@@ -639,18 +639,34 @@ exports.getSalaryHistoryByMonthYear = async (month, year, page, limit) => {
     pagination: { total: totalPayments, page, limit, totalPages: Math.ceil(totalPayments / limit) },
   };
 };
+const createSalaryPayment = async (userId, amount, month, year) => {
+  // Validation đầu vào
+  if (!userId || !amount || !month || !year) {
+    throw new AppError("Thiếu userId, amount, month hoặc year", 400);
+  }
+  if (isNaN(amount) || amount <= 0) {
+    throw new AppError("Amount phải là số dương", 400);
+  }
+  if (isNaN(month) || month < 1 || month > 12) {
+    throw new AppError("Invalid month. Must be between 1 and 12", 400);
+  }
+  if (isNaN(year) || year < 2000 || year > new Date().getFullYear() + 1) {
+    throw new AppError("Invalid year", 400);
+  }
 
-exports.acceptSalary = async (userId, amount, month, year, clientIp) => {
+  // Kiểm tra nutritionist
   const nutritionist = await UserModel.findById(userId);
   if (!nutritionist || nutritionist.role !== "nutritionist") {
     throw new AppError("Nutritionist not found or invalid role", 404);
   }
 
+  // Kiểm tra xem đã thanh toán lương cho tháng này chưa
   const existingPayment = await SalaryPayment.findOne({ userId, month, year, status: "success" });
   if (existingPayment) {
     throw new AppError(`Salary for ${month}/${year} has already been paid`, 400);
   }
 
+  // Tính lương
   const startOfMonth = new Date(year, month - 1, 1);
   const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
   const mealPlans = await MealPlan.find({
@@ -669,6 +685,7 @@ exports.acceptSalary = async (userId, amount, month, year, clientIp) => {
   }, 0);
   const totalSalary = baseSalary + commission;
 
+  // Kiểm tra tính hợp lệ của amount
   if (Math.round(totalSalary) !== Math.round(amount)) {
     throw new AppError(
       `Calculated salary (${totalSalary}) does not match provided amount (${amount})`,
@@ -676,32 +693,84 @@ exports.acceptSalary = async (userId, amount, month, year, clientIp) => {
     );
   }
 
-  const payment = new SalaryPayment({
+  // Tìm hoặc tạo bản ghi SalaryPayment
+  let payment = await SalaryPayment.findOne({
     userId,
-    amount: totalSalary,
-    status: "pending",
-    paymentMethod: "vnpay",
-    paymentType: "salary",
     month,
     year,
+    status: "pending",
+    createdAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
   });
-  await payment.save();
 
+  if (!payment) {
+    payment = new SalaryPayment({
+      userId,
+      amount: totalSalary,
+      status: "pending",
+      paymentMethod: "vnpay",
+      paymentType: "salary",
+      month,
+      year,
+    });
+    await payment.save();
+  } else if (payment.amount !== totalSalary) {
+    payment.amount = totalSalary;
+    payment.updatedAt = new Date();
+    await payment.save();
+  }
+
+  return { payment, nutritionist, totalSalary };
+};
+
+exports.acceptSalary = async (userId, amount, month, year, clientIp) => {
+  // Validation và tạo SalaryPayment
+  const { payment, nutritionist, totalSalary } = await createSalaryPayment(
+    userId,
+    amount,
+    month,
+    year
+  );
+
+  // Kiểm tra clientIp
+  if (!clientIp || typeof clientIp !== "string") {
+    throw new AppError("Invalid client IP address", 400);
+  }
+
+  // Kiểm tra cấu hình VNPay
+  if (!VNPAY_CONFIG.vnp_TmnCode) {
+    throw new AppError("VNPay TMN Code is missing", 500);
+  }
+  if (!VNPAY_CONFIG.vnp_HashSecret) {
+    throw new AppError("VNPay Hash Secret is missing", 500);
+  }
+  if (!VNPAY_CONFIG.vnp_Url) {
+    throw new AppError("VNPay URL is missing", 500);
+  }
+  if (!VNPAY_CONFIG.vnp_AdminReturnUrl) {
+    // Sửa từ vnp_Admin_ReturnUrl thành vnp_AdminReturnUrl
+    throw new AppError("VNPay Admin Return URL is missing", 500);
+  }
+
+  // Tạo tham số VNPay
   const vnp_Params = {
     vnp_Version: "2.1.0",
     vnp_Command: "pay",
-    vnp_TmnCode: VNPAY_CONFIG.vnp_TmnCode || "",
-    vnp_Amount: Math.round(totalSalary * 100).toString(),
+    vnp_TmnCode: VNPAY_CONFIG.vnp_TmnCode,
+    vnp_Amount: (totalSalary * 100).toString(), // Nhân 100 theo chuẩn VNPay (VND -> đồng)
     vnp_CurrCode: "VND",
     vnp_TxnRef: payment._id.toString(),
     vnp_OrderInfo: `Thanh toan luong thang ${month}/${year} cho ${nutritionist.username}`,
-    vnp_OrderType: "180000",
+    vnp_OrderType: "190000", // Dùng mã khác với meal plan (180000)
     vnp_Locale: "vn",
-    vnp_ReturnUrl: "http://localhost:8080/api/v1/payment/vnpay/adminReturn",
+    vnp_ReturnUrl: VNPAY_CONFIG.vnp_AdminReturnUrl, // Sửa từ vnp_Admin_ReturnUrl thành vnp_AdminReturnUrl
     vnp_IpAddr: clientIp,
     vnp_CreateDate: moment().format("YYYYMMDDHHmmss"),
   };
 
+  // Log tham số để debug
+  console.log("VNPay params before sending:", vnp_Params);
+
+  // Sắp xếp tham số và tạo secure hash
   const sortedParams = Object.fromEntries(
     Object.entries(vnp_Params)
       .map(([key, value]) => [key, String(value || "").trim()])
@@ -714,6 +783,8 @@ exports.acceptSalary = async (userId, amount, month, year, clientIp) => {
     .digest("hex");
 
   sortedParams["vnp_SecureHash"] = secureHash;
+
+  // Tạo URL thanh toán
   const paymentUrl = `${VNPAY_CONFIG.vnp_Url}?${new URLSearchParams(sortedParams).toString()}`;
 
   return { paymentUrl, paymentId: payment._id, calculatedSalary: totalSalary };
